@@ -1,228 +1,155 @@
-
 "use strict";
 
 /** This object sets up the word search game, as well as button functions (for solving
  * and for refreshing/setting up a new game).
  *
- * @author ...
- *
+ * @author Noor Aftab
+ *	
  * @param {String} gameId ID of the word search game div (where the actual grid of letters goes)
  * @param {String} listId ID of the div where the list of words to find goes
  * @param {String} solveId ID for button to solve the puzzle
  * @param {String} newGameId ID for button to start a new game
- * @param {String} instructionsId ID for the h2 heading (to allow us to update its text with ease)
+ * @param {String} instructionsId ID for the h2 heading (to allow us to update it's text with ease)
  * @param {String} themeId ID for part of the h3 heading (to show the theme of the word search)
  */
 
 function WordSearchController(gameId, listId, solveId, newGameId, instructionsId, themeId) {
 
-    // Preload background images
-    preloadImages();
+	//an object containing various themes/words for the game
+	var searchTypes = {
 
-    /** Preload background images */
-    function preloadImages() {
-        var themes = [
-            '../images/math_theme.jpg',
-            '../images/astronomy_theme.jpg',
-            '../images/philosophy_theme.jpg',
-            '../images/mythology_theme.jpg',
-            '../images/purple_theme.jpg',
-            '../images/cats_theme.jpg'
-        ];
+		"Ink of Memory": [["personal", "cultural", "story", "behind"],
+			["family", "tattoo", "element", "symbolism"],
+			["represent", "fine line", "black", "dream"],
+			["taemong", "connection", "generation", "life"],
+			["tradition",  "values",  "refers", "significant"]],
 
-        themes.forEach(function(src) {
-            var img = new Image();
-            img.src = src;
-        });
-    }
+		"History of Tattoos in Korean Culture": [["history", "brand", "viewed", "transitioning"],
+			["expression", "time", "ancient", "joseon"], 
+			["occupation", "modern", "war", "trends"],
+			["influenced", "art", "form", "protect"],
+			["medical", "against", "public", "rule"]],
 
-    // An object containing various themes/words for the game
-    var searchTypes = {
-        "Math! (please don't run away)": [["asymptote", "differential", "algorithm", "boolean"],
-            ["euclidean", "integral", "logarithm", "matrix"],
-            ["riemann", "polyhedron", "theta", "vector"],
-            ["binomial", "pythagoras", "eccentricity", "unit circle"],
-            ["derivative", "polar coordinates", "tangent", "scalene"]],
+		"Symbolism of Hanbok": [["korean", "hanbok", "heritage", "cultural"],
+			["identity", "connects", "color", "signify"],
+			["harmony", "nature", "balance", "design"],
+			["natural", "beauty", "simple", "occasions"],
+			["life", "event", "national", "key"]],
 
-        "Astronomy and Physics!": [["circumpolar", "comet", "asteroid", "declination"],
-            ["earthshine", "albedo", "quantum", "olivine"],
-            ["pyroxene", "decoherence", "fermion", "quark"],
-            ["gluon", "redshift", "inflaton", "planetesimal"],
-            ["anthropic", "exogenesis", "atom", "planck"]],
+		"Tattoos Across Cultures": [["data", "symbolism", "global", "celtic"],
+			["scotland", "eternal life", "animals", "spiritual"],
+			["stories", "link", "history", "samoan"],
+			["honour", "generations", "tribal", "japanese"],
+			["irezumi", "maori", "form", "path"]],
 
-        "Philosophy!": [["metaphysics", "modus ponens", "modus tollens", "analogy"],
-            ["a priori", "a posteriori", "conditional", "nietzsche"],
-            ["diogenes", "paradox", "occam's razor", "causality"],
-            ["induction", "deduction", "ontology", "theology"],
-            ["syllogism", "ethics", "karl marx", "pluralism"]],
+		"Tattoo Symbolism": [["western", "christianity", "cross", "angel"],
+			["dove", "hope", "greek", "gods"],
+			["tree", "athena", "celtic", "knots"],
+			["life", "chinese", "dragon", "phoenix"],
+			["rebirth", "tigers", "magpies", "feathers"]],
 
-        "World Mythology :D": [["chronos", "aether", "hypnos", "psyche"],
-            ["jupiter", "sol", "chaos", "pandora"],
-            ["thor", "valhalla", "amaterasu", "osiris"],
-            ["mazu", "izanami", "susanoo", "xipe totec"],
-            ["mercury", "bastet", "sekhmet", "ptah"]],
+		"First Tattoo Age-Related Trends": [["usa", "uk", "south korea", "japan"],
+			["time line", "self expression", "life", "generational"],
+			["differences", "view", "trends", "link"],
+			["personal", "acceptance", "journey", "meaningful"],
+			["event", "loved ones", "symbols", "identity"]]
 
-        "Shades of Purple!": [["violet", "periwinkle", "plum", "grape"],
-            ["orchid", "wine", "mauve", "lavender"],
-            ["lilac", "mulberry", "eggplant", "heliotrope"],
-            ["liseran purple", "amethyst", "fuchsia", "pomp and power"],
-            ["sangria", "boysenberry", "thistle", "heather"]],
+	};
 
-        "The Many Different Flavors of Cat!": [["Russian Blue", "Siamese", "Persian", "Sphynx"],
-            ["Ragdoll", "Singapura", "Snowshoe", "Turkish Van"],
-            ["Maine Coon", "Devon Rex", "Charteux", "Scottish Fold"],
-            ["Himalayan", "Ragamuffin", "Bombay", "Siberian"],
-            ["Egyptian Mau", "Norwegian Forest Cat", "Abyssinian", "York Chocolate"]]
-    };
+	//variables to store game logic and it's view
+	var game;
+	var view;
 
-    // Variables to store game logic and its view
-    var game;
-    var view;
+	//instructions to display in h2 header
+	var mainInstructions = "Search for the list of words inside the box and click-and-drag to select them!";
 
-    // Instructions to display in h2 header
-    var mainInstructions = "Search for the list of words inside the box and click-and-drag to select them!";
+	//function call to start the word search game
+	setUpWordSearch();
 
-    // Function call to start the word search game
-    setUpWordSearch();
+	/** randomly chooses a word theme and sets up the game matrix and the game 
+	 * view to reflect that theme
+	 */
+	function setUpWordSearch() {
 
-    /** Randomly chooses a word theme and sets up the game matrix and the game
-     * view to reflect that theme
-     *
-     * @param {String} selectedTheme (optional) specific theme to set up, defaults to random
-     */
-    function setUpWordSearch(selectedTheme = "random") {
-        var searchTypesArray = Object.keys(searchTypes);
-        var theme;
+		//generates a random theme 
+		var searchTypesArray = Object.keys(searchTypes); //converts theme object to array
+		var randIndex = Math.floor(Math.random()*searchTypesArray.length); //generates random number/index
+		var listOfWords = searchTypes[searchTypesArray[randIndex]]; //retrieves the matrix of words from random index
 
-        if (selectedTheme === "random") {
-            var randIndex = Math.floor(Math.random() * searchTypesArray.length);
-            theme = searchTypesArray[randIndex];
-        } else if (searchTypesArray.includes(selectedTheme)) {
-            theme = selectedTheme;
-        } else {
-            theme = searchTypesArray[0]; // default to first theme if invalid
-        }
+		//converts letters to uppercase
+		convertToUpperCase(listOfWords); 
 
-        var listOfWords = searchTypes[theme];
+		//sets the headings to reflect the instructions and themes
+		updateHeadings(mainInstructions, searchTypesArray[randIndex]);
 
-        // Convert words to uppercase
-        convertToUpperCase(listOfWords);
+		//runs the logic of the game using a close of the word list (to avoid the actual object being altered)
+		game = new WordSearchLogic(gameId, listOfWords.slice());
+		game.setUpGame();
 
-        // Update headings
-        updateHeadings(mainInstructions, theme);
+		//generates the view of the game and sets up mouse events for clicking and dragging
+		view = new WordSearchView(game.getMatrix(), game.getListOfWords(), gameId, listId, instructionsId);
+		view.setUpView();
+		view.triggerMouseDrag();
 
-        // Update background based on selected theme
-        updateBackground(theme);
+	}
 
-        // Existing game setup logic
-        game = new WordSearchLogic(gameId, listOfWords.slice());
-        game.setUpGame();
-        view = new WordSearchView(game.getMatrix(), game.getListOfWords(), gameId, listId, instructionsId);
-        view.setUpView();
-        view.triggerMouseDrag();
-    }
+	/** converts a given 2D array of words to all uppercase
+	 *
+	 * @param {String[][]} wordList a matrix of words to convert to uppercase
+	 */
+	function convertToUpperCase(wordList)  {
 
-    /** Converts a given 2D array of words to all uppercase
-     *
-     * @param {String[][]} wordList a matrix of words to convert to uppercase
-     */
-    function convertToUpperCase(wordList) {
+		for (var i = 0; i < wordList.length; i++) {
 
-        for (var i = 0; i < wordList.length; i++) {
+			for(var j = 0; j < wordList[i].length; j++) {
 
-            for (var j = 0; j < wordList[i].length; j++) {
+				wordList[i][j] = wordList[i][j].toUpperCase();
 
-                wordList[i][j] = wordList[i][j].toUpperCase();
+			}
 
-            }
+		}
 
-        }
+	}
 
-    }
+	/** updates the instructions (h2) and theme (h3) headings according to the given
+	 * text parameters
+	 *
+	 * @param {String} instructions text to set the h2 heading to
+	 * @param {String} theme text to set the h3 theme element to
+	 */
+	function updateHeadings(instructions, theme) {
 
-    /** Updates the instructions (h2) and theme (h3) headings according to the given
-     * text parameters
-     *
-     * @param {String} instructions text to set the h2 heading to
-     * @param {String} theme text to set the h3 theme element to
-     */
-    function updateHeadings(instructions, theme) {
+		$(instructionsId).text(instructions);
+		$(themeId).text(theme);
 
-        $(instructionsId).text(instructions);
-        $(themeId).text(theme);
+	}
 
-    }
+	/** solves the word search puzzle when the solve button is clicked
+	 *
+	 * @event WordSearchController#click
+	 * @param {function} function to execute on mouse click
+	 */
+	$(solveId).click(function() {
 
-    /** Updates the background image based on the selected theme */
-    function updateBackground(theme) {
-        // Reference to the body element
-        var body = document.body;
+		view.solve(game.getWordLocations(), game.getMatrix());
 
-        // Remove any existing theme classes
-        body.classList.remove(
-            'math-background',
-            'astronomy-background',
-            'philosophy-background',
-            'mythology-background',
-            'purple-background',
-            'cats-background'
-        );
+	});
 
-        // Determine which class to add based on the theme
-        switch (theme) {
-            case "Math! (please don't run away)":
-                body.classList.add('math-background');
-                break;
-            case "Astronomy and Physics!":
-                body.classList.add('astronomy-background');
-                break;
-            case "Philosophy!":
-                body.classList.add('philosophy-background');
-                break;
-            case "World Mythology :D":
-                body.classList.add('mythology-background');
-                break;
-            case "Shades of Purple!":
-                body.classList.add('purple-background');
-                break;
-            case "The Many Different Flavors of Cat!":
-                body.classList.add('cats-background');
-                break;
-            default:
-                // Optionally, set a default background or leave it blank
-                break;
-        }
-    }
+	/** empties the game and list divs and replaces them with a new setup, modelling
+	 * a 'refresh' effect when button is clicked
+	 *
+	 * @param {function} function to execute on mouse click to generate a new puzzle
+	 */
+	$(newGameId).click(function() {
 
-    /** Solves the word search puzzle when the solve button is clicked
-     *
-     * @event WordSearchController#click
-     * @param {function} function to execute on mouse click
-     */
-    $(solveId).click(function() {
+		//empties the game and list elements, as well as the h3 theme span element
+		$(gameId).empty();
+		$(listId).empty();
+		$(themeId).empty();
 
-        view.solve(game.getWordLocations(), game.getMatrix());
+		//calls the set up to create a new word search game
+		setUpWordSearch();
 
-    });
-
-    /** Empties the game and list divs and replaces them with a new setup, modeling
-     * a 'refresh' effect when button is clicked
-     *
-     * @param {function} function to execute on mouse click to generate a new puzzle
-     */
-    $(newGameId).click(function() {
-
-        // Get selected theme
-        var selectedTheme = $("#themeSelect").val();
-
-        // Empties the game and list elements, as well as the h3 theme span element
-        $(gameId).empty();
-        $(listId).empty();
-        $(themeId).empty();
-
-        // Call setUpWordSearch with the selected theme
-        setUpWordSearch(selectedTheme);
-
-    });
+	})
 
 }
